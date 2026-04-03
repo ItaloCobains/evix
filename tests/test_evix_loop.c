@@ -1,5 +1,7 @@
 #include "unity.h"
 #include "evix.h"
+#include <stdint.h>
+#include <time.h>
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -89,13 +91,20 @@ void test_timer_with_zero_delay(void)
 
 void test_timer_fires_after_delay(void)
 {
+    struct timespec start, end;
     evix_loop_t *loop = evix_loop_create();
     int value = 0;
 
     evix_timer_create(loop, 50, increment_counter, &value);
     TEST_ASSERT_EQUAL_INT(0, value);
 
+    clock_gettime(CLOCK_MONOTONIC, &start);
     evix_loop_run(loop);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    uint64_t elapsed_ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+    TEST_ASSERT(elapsed_ms >= 50);
+
     TEST_ASSERT_EQUAL_INT(1, value);
     evix_loop_destroy(loop);
 }
