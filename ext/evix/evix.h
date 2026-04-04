@@ -1,79 +1,46 @@
-/*
- * evix.h -- API pública do event loop evix.
- *
- * Usa "opaque pointers": o usuário vê evix_loop_t* e evix_timer_t*
- * mas não sabe o que tem dentro das structs. Isso esconde a
- * implementação e permite mudar os internos sem quebrar quem usa.
- */
-
 #ifndef EVIX_H
 #define EVIX_H
 
 #include <stdint.h>
 
-/* Constantes de conversão de tempo. */
 #define SEC_TO_MS 1000
 #define MS_TO_NS 1000000
 
-/*
- * Forward declarations -- o "struct evix_loop" é definido em evix.c,
- * aqui só declaramos que ele existe. Quem inclui evix.h só pode
- * usar ponteiros pra ele, nunca acessar campos diretamente.
- */
+#define EVIX_IO_READ  1
+#define EVIX_IO_WRITE 2
+
+/* Opaque types */
 typedef struct evix_loop evix_loop_t;
 typedef struct evix_timer evix_timer_t;
+typedef struct evix_io evix_io_t;
 
-/*
- * Definição da estrutura do backend.
- * O backend é uma coleção de funções que o loop chama em certos momentos.
- */
+/* Backend interface */
 typedef struct evix_backend {
     int  (*init)(evix_loop_t *loop);
     void (*destroy)(evix_loop_t *loop);
-    int  (*pool)(evix_loop_t *loop, int timeout_ms);   
+    int  (*poll)(evix_loop_t *loop, int timeout_ms);
+    int  (*io_add)(evix_loop_t *loop, int fd, int events);
+    int  (*io_del)(evix_loop_t *loop, int fd);
 } evix_backend_t;
 
-/*
- * Tipo de callback que o event loop aceita.
- * É um ponteiro pra função que recebe void* (dados genéricos)
- * e não retorna nada. O void* permite passar qualquer coisa
- * (int*, struct*, etc.) -- o callback faz o cast de volta.
- */
+/* Callback type */
 typedef void (*evix_callback_fn)(void *data);
 
-/* Cria um event loop alocado no heap. Retorna NULL se falhar. */
+/* Loop lifecycle */
 evix_loop_t *evix_loop_create(evix_backend_t *backend);
-
-/* Libera toda a memória do loop (callbacks, timers, o próprio loop). */
 void         evix_loop_destroy(evix_loop_t *loop);
-
-/*
- * Executa o event loop:
- * 1. Dispara todos os callbacks imediatos (registrados com add_callback).
- * 2. Entra em loop de timers: dorme até o próximo timer, dispara os
- *    expirados, repete até não ter mais timers.
- * Retorna 0 em sucesso.
- */
 int          evix_loop_run(evix_loop_t *loop);
+void         evix_loop_stop(evix_loop_t *loop);
 
-/*
- * Registra um callback imediato -- será chamado assim que evix_loop_run
- * iniciar, antes de processar qualquer timer. Ordem de execução é a
- * mesma ordem de registro (FIFO).
- */
+/* Immediate callbacks */
 void         evix_loop_add_callback(evix_loop_t *loop, evix_callback_fn callback, void *data);
 
-/*
- * Cria e registra um timer no loop.
- *   delay_ms: tempo em milissegundos até o callback disparar.
- *   callback: função a ser chamada quando o timer expirar.
- *   data:     argumento passado ao callback.
- * O timer dispara uma única vez (one-shot) e é removido automaticamente.
- * Retorna ponteiro pro timer, ou NULL se falhar a alocação.
- */
+/* Timers (one-shot) */
 evix_timer_t *evix_timer_create(evix_loop_t *loop, uint64_t delay_ms, evix_callback_fn callback, void *data);
-
-/* Libera a memória de um timer (use só pra timers que você removeu manualmente). */
 void          evix_timer_destroy(evix_timer_t *timer);
+
+/* I/O watchers (persistent) */
+evix_io_t    *evix_io_create(evix_loop_t *loop, int fd, int events, evix_callback_fn callback, void *data);
+void          evix_io_stop(evix_loop_t *loop, evix_io_t *io);
 
 #endif
