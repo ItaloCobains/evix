@@ -17,11 +17,11 @@ typedef struct evix_io evix_io_t;
 
 /* Backend interface */
 typedef struct evix_backend {
-    int  (*init)(evix_loop_t *loop);
-    void (*destroy)(evix_loop_t *loop);
-    int  (*poll)(evix_loop_t *loop, int timeout_ms);
-    int  (*io_add)(evix_loop_t *loop, int fd, int events);
-    int  (*io_del)(evix_loop_t *loop, int fd);
+  int  (*init)(evix_loop_t *loop);
+  void (*destroy)(evix_loop_t *loop);
+  int  (*poll)(evix_loop_t *loop, int timeout_ms);
+  int  (*io_add)(evix_loop_t *loop, int fd, int events);
+  int  (*io_del)(evix_loop_t *loop, int fd);
 } evix_backend_t;
 
 /* Callback type */

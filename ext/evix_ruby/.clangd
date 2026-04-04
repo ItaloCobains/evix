@@ -1,0 +1,5 @@
+CompileFlags:
+  Add:
+    - -I/Users/italobrandao/.rbenv/versions/3.3.10/include/ruby-3.3.0
+    - -I/Users/italobrandao/.rbenv/versions/3.3.10/include/ruby-3.3.0/arm64-darwin25
+    - -I../evix

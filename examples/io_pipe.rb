@@ -1,4 +1,4 @@
-require_relative "../lib/evix"
+require_relative '../lib/evix'
 
 loop = Evix::Loop.new
 
@@ -14,13 +14,13 @@ end
 
 # Timer que escreve no pipe apos 500ms
 loop.add_timer(500) do
-  wr.write("hello from evix!")
-  puts "escreveu no pipe"
+  wr.write('hello from evix!')
+  puts 'escreveu no pipe'
 end
 
-puts "Esperando I/O..."
+puts 'Esperando I/O...'
 loop.run
-puts "Loop terminou."
+puts 'Loop terminou.'
 
 loop.destroy
 rd.close
