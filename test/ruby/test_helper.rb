@@ -1,2 +1,4 @@
-require "minitest/autorun"
-require "evix"
+# frozen_string_literal: true
+
+require 'minitest/autorun'
+require 'evix'

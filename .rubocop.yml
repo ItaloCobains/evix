@@ -1,0 +1,22 @@
+AllCops:
+  NewCops: enable
+  Exclude:
+    - 'build/**/*'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/MethodLength:
+  Exclude:
+    - 'test/**/*'
+
+Style/GlobalVars:
+  Exclude:
+    - 'ext/**/extconf.rb'
+
+Style/Documentation:
+  Enabled: false
+
+Gemspec/DevelopmentDependencies:
+  Enabled: false

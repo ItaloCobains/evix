@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require_relative 'evix/version'
 require 'evix_ruby'
 require_relative 'evix/io'
 
 module Evix
+  # Event loop with Fiber-based concurrency and async I/O.
   class Loop
     def spawn(&block)
       fiber = Fiber.new { block.call }

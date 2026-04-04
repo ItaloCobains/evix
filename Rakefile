@@ -1,19 +1,21 @@
-require "rake/clean"
-require "rake/testtask"
+# frozen_string_literal: true
 
-BUILD_DIR = "build"
+require 'rake/clean'
+require 'rake/testtask'
 
-CLEAN.include(BUILD_DIR, "tmp")
+BUILD_DIR = 'build'
+
+CLEAN.include(BUILD_DIR, 'tmp')
 
 # --- C library (shared, for C tests) ---
 
-desc "Compile the C library (shared)"
+desc 'Compile the C library (shared)'
 task :compile do
   sh "cmake -S . -B #{BUILD_DIR} -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release"
   sh "cmake --build #{BUILD_DIR}"
 end
 
-desc "Compile and run C tests"
+desc 'Compile and run C tests'
 task :test_c do
   sh "cmake -S . -B #{BUILD_DIR} -DBUILD_SHARED_LIBS=ON -DENABLE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug"
   sh "cmake --build #{BUILD_DIR}"
@@ -22,27 +24,27 @@ end
 
 # --- Ruby C extension ---
 
-desc "Compile the Ruby C extension"
+desc 'Compile the Ruby C extension'
 task :compile_ext do
-  ext_dir = "ext/evix_ruby"
+  ext_dir = 'ext/evix_ruby'
   sh "cd #{ext_dir} && ruby extconf.rb && make"
 end
 
 # --- Ruby tests ---
 
 Rake::TestTask.new(:test_ruby) do |t|
-  t.libs << "lib"
-  t.libs << "ext/evix_ruby"
-  t.test_files = FileList["test/ruby/test_*.rb"]
+  t.libs << 'lib'
+  t.libs << 'ext/evix_ruby'
+  t.test_files = FileList['test/ruby/test_*.rb']
 end
 task test_ruby: :compile_ext
 
-desc "Run all tests (C + Ruby)"
-task test: [:test_c, :test_ruby]
+desc 'Run all tests (C + Ruby)'
+task test: %i[test_c test_ruby]
 
-desc "Run Ruby example"
+desc 'Run Ruby example'
 task example: :compile do
-  sh "ruby examples/basic.rb"
+  sh 'ruby examples/basic.rb'
 end
 
 task default: :compile

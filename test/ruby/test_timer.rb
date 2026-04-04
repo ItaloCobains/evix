@@ -1,4 +1,6 @@
-require_relative "test_helper"
+# frozen_string_literal: true
+
+require_relative 'test_helper'
 
 class TestTimer < Minitest::Test
   def test_timer_fires
@@ -6,7 +8,7 @@ class TestTimer < Minitest::Test
     fired = false
     loop.add_timer(10) { fired = true }
     loop.run
-    assert fired, "timer should have fired"
+    assert fired, 'timer should have fired'
     loop.destroy
   end
 
@@ -29,7 +31,7 @@ class TestTimer < Minitest::Test
     loop.add_timer(20) { order << :first }
     loop.add_timer(100) { order << :third }
     loop.run
-    assert_equal [:first, :second, :third], order
+    assert_equal %i[first second third], order
     loop.destroy
   end
 
@@ -48,7 +50,7 @@ class TestTimer < Minitest::Test
     loop.add_callback { order << :callback }
     loop.add_timer(10) { order << :timer }
     loop.run
-    assert_equal [:callback, :timer], order
+    assert_equal %i[callback timer], order
     loop.destroy
   end
 end

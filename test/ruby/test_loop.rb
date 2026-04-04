@@ -1,4 +1,6 @@
-require_relative "test_helper"
+# frozen_string_literal: true
+
+require_relative 'test_helper'
 
 class TestLoop < Minitest::Test
   def setup
@@ -32,7 +34,7 @@ class TestLoop < Minitest::Test
     called = false
     @loop.add_callback { called = true }
     @loop.run
-    assert called, "callback should have been called"
+    assert called, 'callback should have been called'
   end
 
   def test_multiple_callbacks_in_order
@@ -51,7 +53,7 @@ class TestLoop < Minitest::Test
       @loop.add_callback { order << :second }
     end
     @loop.run
-    assert_equal [:first, :second], order
+    assert_equal %i[first second], order
   end
 
   def test_stop_halts_loop

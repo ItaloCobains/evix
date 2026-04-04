@@ -1,4 +1,6 @@
-require_relative "test_helper"
+# frozen_string_literal: true
+
+require_relative 'test_helper'
 
 class TestFiber < Minitest::Test
   def test_spawn_executes_block
@@ -17,7 +19,7 @@ class TestFiber < Minitest::Test
     loop.spawn { order << :b }
     loop.spawn { order << :c }
     loop.run
-    assert_equal [:a, :b, :c], order
+    assert_equal %i[a b c], order
     loop.destroy
   end
 
@@ -32,10 +34,10 @@ class TestFiber < Minitest::Test
       loop.stop
     end
 
-    loop.add_timer(10) { wr.write("fiber hello") }
+    loop.add_timer(10) { wr.write('fiber hello') }
     loop.run
 
-    assert_equal "fiber hello", received
+    assert_equal 'fiber hello', received
     rd.close
     wr.close
     loop.destroy
@@ -47,13 +49,13 @@ class TestFiber < Minitest::Test
 
     loop.spawn do
       wrapped = loop.wrap(wr)
-      wrapped.write("from fiber")
+      wrapped.write('from fiber')
       loop.stop
     end
 
     loop.run
 
-    assert_equal "from fiber", rd.read_nonblock(64)
+    assert_equal 'from fiber', rd.read_nonblock(64)
     rd.close
     wr.close
     loop.destroy
@@ -94,12 +96,12 @@ class TestFiber < Minitest::Test
       loop.stop if done == 2
     end
 
-    loop.add_timer(10) { wr1.write("from pipe 1") }
-    loop.add_timer(20) { wr2.write("from pipe 2") }
+    loop.add_timer(10) { wr1.write('from pipe 1') }
+    loop.add_timer(20) { wr2.write('from pipe 2') }
     loop.run
 
-    assert_includes results, "from pipe 1"
-    assert_includes results, "from pipe 2"
+    assert_includes results, 'from pipe 1'
+    assert_includes results, 'from pipe 2'
     assert_equal 2, results.size
 
     [rd1, wr1, rd2, wr2].each(&:close)

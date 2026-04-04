@@ -1,4 +1,6 @@
-require_relative "test_helper"
+# frozen_string_literal: true
+
+require_relative 'test_helper'
 
 class TestIO < Minitest::Test
   def test_io_read_with_pipe
@@ -11,10 +13,10 @@ class TestIO < Minitest::Test
       loop.stop
     end
 
-    loop.add_timer(10) { wr.write("hello") }
+    loop.add_timer(10) { wr.write('hello') }
     loop.run
 
-    assert_equal "hello", received
+    assert_equal 'hello', received
     rd.close
     wr.close
     loop.destroy
@@ -26,7 +28,7 @@ class TestIO < Minitest::Test
 
     written = false
     loop.add_io(wr.fileno, Evix::IO_WRITE | Evix::IO_ONESHOT) do
-      wr.write_nonblock("data")
+      wr.write_nonblock('data')
       written = true
       loop.stop
     end
@@ -34,7 +36,7 @@ class TestIO < Minitest::Test
     loop.run
 
     assert written
-    assert_equal "data", rd.read_nonblock(64)
+    assert_equal 'data', rd.read_nonblock(64)
     rd.close
     wr.close
     loop.destroy
@@ -50,12 +52,12 @@ class TestIO < Minitest::Test
       count += 1
     end
 
-    loop.add_timer(10) { wr.write("first") }
-    loop.add_timer(30) { wr.write("second") }
+    loop.add_timer(10) { wr.write('first') }
+    loop.add_timer(30) { wr.write('second') }
     loop.add_timer(60) { loop.stop }
     loop.run
 
-    assert_equal 1, count, "oneshot should fire only once"
+    assert_equal 1, count, 'oneshot should fire only once'
     rd.close
     wr.close
     loop.destroy
@@ -72,12 +74,12 @@ class TestIO < Minitest::Test
       loop.stop if count >= 3
     end
 
-    loop.add_timer(10) { wr.write("a") }
-    loop.add_timer(30) { wr.write("b") }
-    loop.add_timer(50) { wr.write("c") }
+    loop.add_timer(10) { wr.write('a') }
+    loop.add_timer(30) { wr.write('b') }
+    loop.add_timer(50) { wr.write('c') }
     loop.run
 
-    assert_equal 3, count, "persistent watcher should fire multiple times"
+    assert_equal 3, count, 'persistent watcher should fire multiple times'
     rd.close
     wr.close
     loop.destroy
@@ -93,10 +95,10 @@ class TestIO < Minitest::Test
       loop.stop
     end
 
-    loop.add_timer(10) { wr.write("default") }
+    loop.add_timer(10) { wr.write('default') }
     loop.run
 
-    assert_equal "default", received
+    assert_equal 'default', received
     rd.close
     wr.close
     loop.destroy

@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module Evix
+  # Fiber-aware I/O wrapper for non-blocking read/write over the event loop.
   class IO
     def initialize(loop, ruby_io)
       @loop = loop

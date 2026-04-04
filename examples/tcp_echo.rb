@@ -1,8 +1,10 @@
-require_relative "../lib/evix"
-require "socket"
+# frozen_string_literal: true
+
+require_relative '../lib/evix'
+require 'socket'
 
 loop = Evix::Loop.new
-server = TCPServer.new("127.0.0.1", 3000)
+server = TCPServer.new('127.0.0.1', 3000)
 
 loop.add_io(server.fileno, Evix::IO_READ) do
   ruby_client = server.accept_nonblock
@@ -14,13 +16,13 @@ loop.add_io(server.fileno, Evix::IO_READ) do
       puts "echo: #{data.chomp}"
       client.write(data)
     end
-    puts "cliente desconectou"
+    puts 'cliente desconectou'
     client.close
   end
 end
 
-puts "Echo server rodando em 127.0.0.1:3000"
-puts "Teste com: nc 127.0.0.1 3000"
+puts 'Echo server rodando em 127.0.0.1:3000'
+puts 'Teste com: nc 127.0.0.1 3000'
 loop.run
 loop.destroy
 server.close
