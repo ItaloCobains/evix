@@ -1,0 +1,14 @@
+require "fileutils"
+
+task :default do
+  build_dir = File.expand_path("../../build", __dir__)
+  source_dir = File.expand_path("../..", __dir__)
+
+  FileUtils.mkdir_p(build_dir)
+
+  system("cmake", "-S", source_dir, "-B", build_dir,
+         "-DBUILD_SHARED_LIBS=ON", "-DENABLE_TESTING=OFF",
+         "-DCMAKE_BUILD_TYPE=Release") || abort("cmake configure failed")
+
+  system("cmake", "--build", build_dir) || abort("cmake build failed")
+end
