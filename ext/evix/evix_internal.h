@@ -19,6 +19,7 @@ struct evix_timer {
 struct evix_io {
     int fd;
     int events;
+    int oneshot;
     evix_callback_fn callback;
     void *data;
     struct evix_io *next;

@@ -19,7 +19,7 @@ module Evix
     # Loop lifecycle
     attach_function :evix_loop_create,       [:pointer], :pointer
     attach_function :evix_loop_destroy,      [:pointer], :void
-    attach_function :evix_loop_run,          [:pointer], :int
+    attach_function :evix_loop_run,          [:pointer], :int, blocking: true
     attach_function :evix_loop_stop,         [:pointer], :void
     attach_function :evix_loop_add_callback, [:pointer, :evix_callback_fn, :pointer], :void
 

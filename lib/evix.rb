@@ -1,9 +1,11 @@
 require_relative "evix/version"
 require_relative "evix/ffi"
+require_relative "evix/io"
 
 module Evix
-  IO_READ  = 1
-  IO_WRITE = 2
+  IO_READ    = 1
+  IO_WRITE   = 2
+  IO_ONESHOT = 4
 
   class Loop
     def initialize(backend: :kqueue)
@@ -34,6 +36,15 @@ module Evix
       cb = ::FFI::Function.new(:void, [:pointer]) { |_| block.call }
       @refs << cb
       FFIBindings.evix_io_create(@ptr, fd, events, cb, ::FFI::Pointer::NULL)
+    end
+
+    def spawn(&block)
+      fiber = Fiber.new { block.call }
+      add_callback { fiber.resume }
+    end
+
+    def wrap(ruby_io)
+      Evix::IO.new(self, ruby_io)
     end
 
     def stop

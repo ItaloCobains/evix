@@ -1,101 +1,105 @@
-# Template For C Projects
+# evix
 
-![C++](https://img.shields.io/badge/C%2B%2B-11%2F14%2F17%2F20%2F23-blue)
-![License](https://img.shields.io/github/license/franneck94/CProjectTemplate)
-![Linux Build](https://github.com/franneck94/CProjectTemplate/workflows/Ubuntu%20CI%20Test/badge.svg)
+A lightweight event loop library written in C with Ruby bindings via FFI.
 
-This is a template for C++ projects. What you get:
+Supports immediate callbacks, one-shot timers, and persistent/one-shot I/O watchers with an abstract backend system (kqueue on macOS/BSD, epoll planned for Linux).
 
-- Library, executable and test code separated in distinct folders.
-- Use of modern CMake for building and compiling.
-- External libraries fetched by CMake or cloned by Git.
-- Unit testing using [Unity](https://github.com/ThrowTheSwitch/Unity)
-- General purpose libraries:
-  - [log](https://github.com/rxi/log.c)
-  - [argparse](https://github.com/cofyc/argparse)
-- Continuous integration testing and coverage reports with Github Actions.
-- Code documentation with [Doxygen](http://www.stack.nl/~dimitri/doxygen/).
-- Tooling: Clang-Format, Cmake-Format, Clang-tidy, Sanitizers
+The Ruby layer adds Fiber-based async I/O, giving you synchronous-looking code on top of non-blocking I/O.
 
 ## Structure
 
-``` text
-├── CMakeLists.txt
-├── app
-│   ├── CMakesLists.txt
-│   └── main.cc
-├── cmake
-│   └── cmake modules
-├── docs
-│   ├── Doxyfile
-│   └── html/
-├── external
-│   ├── CMakesLists.txt
-│   ├── ...
-├── src
-│   ├── CMakesLists.txt
-│   ├── foo/
-│   └── bar/
-└── tests
-    ├── CMakeLists.txt
-    └── main.c
 ```
-
-Library code goes into [src/](src/), main program code in [app/](app) and tests go in [tests/](tests/).
-
-## Software Requirements
-
-- CMake 3.21+
-- GNU Makefile
-- Doxygen
-- Conan or VCPKG
-- MSVC 2017 (or higher), G++9 (or higher), Clang++9 (or higher)
-- Optional: Code Coverage (only on GNU|Clang): gcovr
-- Optional: Makefile, Doxygen, Conan, VCPKG
+evix/
+├── ext/evix/          # C library (event loop core + kqueue backend)
+├── lib/               # Ruby gem (FFI bindings, Fiber-based I/O)
+├── test/              # C unit tests (Unity)
+├── examples/          # Ruby usage examples
+├── cmake/             # CMake modules
+├── CMakeLists.txt
+├── evix.gemspec
+├── Gemfile
+└── Rakefile
+```
 
 ## Building
 
-First, clone this repo and do the preliminary work:
+Requires CMake 3.22+ and a C99 compiler.
 
-```shell
-git clone --recursive https://github.com/franneck94/CppProjectTemplate
-make prepare
+```bash
+rake compile        # build shared library
+rake test_c         # build and run C tests
 ```
 
-- App Executable
+## Ruby Usage
 
-```shell
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . --config Release --target main
-cd app
-./main
+```bash
+gem install ffi
+rake compile
 ```
 
-- Unit testing
+### Callbacks and Timers
 
-```shell
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-cmake --build . --config Debug --target unit_tests
-cd tests
-./unit_tests
+```ruby
+require "evix"
+
+loop = Evix::Loop.new
+
+loop.add_callback { puts "immediate callback" }
+loop.add_timer(500) { puts "fired after 500ms" }
+
+loop.run
+loop.destroy
 ```
 
-- Documentation
+### TCP Echo Server with Fibers
 
-```shell
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-cmake --build . --config Debug --target docs
+```ruby
+require "evix"
+require "socket"
+
+loop = Evix::Loop.new
+server = TCPServer.new("127.0.0.1", 3000)
+
+loop.add_io(server.fileno, Evix::IO_READ) do
+  ruby_client = server.accept_nonblock
+
+  loop.spawn do
+    client = loop.wrap(ruby_client)
+    while (data = client.read)
+      client.write(data)
+    end
+    client.close
+  end
+end
+
+loop.run
 ```
 
-- Code Coverage (Unix only)
+## C API
 
-```shell
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON ..
-cmake --build . --config Debug --target coverage
+```c
+// Loop
+evix_loop_t *evix_loop_create(evix_backend_t *backend);
+void         evix_loop_destroy(evix_loop_t *loop);
+int          evix_loop_run(evix_loop_t *loop);
+void         evix_loop_stop(evix_loop_t *loop);
+
+// Immediate callbacks
+void evix_loop_add_callback(evix_loop_t *loop, evix_callback_fn cb, void *data);
+
+// Timers (one-shot)
+evix_timer_t *evix_timer_create(evix_loop_t *loop, uint64_t delay_ms, evix_callback_fn cb, void *data);
+
+// I/O watchers (persistent or one-shot)
+evix_io_t *evix_io_create(evix_loop_t *loop, int fd, int events, evix_callback_fn cb, void *data);
+void       evix_io_stop(evix_loop_t *loop, evix_io_t *io);
+
+// Events: EVIX_IO_READ, EVIX_IO_WRITE, EVIX_IO_ONESHOT
+
+// Backend (kqueue)
+evix_backend_t *evix_kqueue_backend(void);
 ```
 
-For more info about CMake see [here](./README_cmake.md).
+## License
+
+MIT

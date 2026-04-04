@@ -6,8 +6,9 @@
 #define SEC_TO_MS 1000
 #define MS_TO_NS 1000000
 
-#define EVIX_IO_READ  1
-#define EVIX_IO_WRITE 2
+#define EVIX_IO_READ    1
+#define EVIX_IO_WRITE   2
+#define EVIX_IO_ONESHOT 4
 
 /* Opaque types */
 typedef struct evix_loop evix_loop_t;

@@ -38,14 +38,18 @@ static int kqueue_io_add(evix_loop_t *loop, int fd, int events)
 {
     evix_kqueue_state_t *state = loop->backend_data;
     struct kevent ev;
+    unsigned short flags = EV_ADD;
+
+    if (events & EVIX_IO_ONESHOT)
+        flags |= EV_ONESHOT;
 
     if (events & EVIX_IO_READ) {
-        EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+        EV_SET(&ev, fd, EVFILT_READ, flags, 0, 0, NULL);
         if (kevent(state->kq, &ev, 1, NULL, 0, NULL) == -1)
             return -1;
     }
     if (events & EVIX_IO_WRITE) {
-        EV_SET(&ev, fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
+        EV_SET(&ev, fd, EVFILT_WRITE, flags, 0, 0, NULL);
         if (kevent(state->kq, &ev, 1, NULL, 0, NULL) == -1)
             return -1;
     }
@@ -83,12 +87,18 @@ static int kqueue_poll(evix_loop_t *loop, int timeout_ms)
 
     for (int i = 0; i < n; i++) {
         int fd = (int)events[i].ident;
+        evix_io_t **prev = &loop->ios;
         evix_io_t *io = loop->ios;
         while (io) {
             if (io->fd == fd) {
                 io->callback(io->data);
+                if (io->oneshot) {
+                    *prev = io->next;
+                    free(io);
+                }
                 break;
             }
+            prev = &io->next;
             io = io->next;
         }
     }

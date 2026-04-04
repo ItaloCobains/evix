@@ -55,10 +55,39 @@ void test_kqueue_io_read_callback_fires(void)
     close(write_fd);
 }
 
+void test_kqueue_io_oneshot_fires_once_and_removes(void)
+{
+    int fds[2];
+    TEST_ASSERT_EQUAL_INT(0, pipe(fds));
+    int read_fd = fds[0];
+    int write_fd = fds[1];
+
+    evix_loop_t *loop = evix_loop_create(evix_kqueue_backend());
+    TEST_ASSERT_NOT_NULL(loop);
+
+    int value = 0;
+
+    write(write_fd, "x", 1);
+
+    evix_io_create(loop, read_fd, EVIX_IO_READ | EVIX_IO_ONESHOT,
+                   increment_counter, &value);
+
+    /* Loop should run, fire the callback once, remove the watcher,
+       then exit because no more ios or timers remain. */
+    evix_loop_run(loop);
+
+    TEST_ASSERT_EQUAL_INT(1, value);
+
+    evix_loop_destroy(loop);
+    close(read_fd);
+    close(write_fd);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_kqueue_timer_fires_after_delay);
     RUN_TEST(test_kqueue_io_read_callback_fires);
+    RUN_TEST(test_kqueue_io_oneshot_fires_once_and_removes);
     return UNITY_END();
 }

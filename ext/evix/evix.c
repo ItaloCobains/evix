@@ -78,20 +78,33 @@ void evix_loop_stop(evix_loop_t *loop)
  * CORE: event loop
  * ================================================================ */
 
+static void drain_callbacks(evix_loop_t *loop)
+{
+    while (loop->head) {
+        evix_cb_node_t *node = loop->head;
+        loop->head = node->next;
+        node->callback(node->data);
+        free(node);
+    }
+}
+
+static int has_work(evix_loop_t *loop)
+{
+    return loop->head || loop->timers || loop->ios;
+}
+
 int evix_loop_run(evix_loop_t *loop)
 {
-    /* Phase 1: immediate callbacks */
-    evix_cb_node_t *node = loop->head;
-    while (node) {
-        node->callback(node->data);
-        node = node->next;
-    }
-
-    /* Phase 2: event loop */
     loop->running = 1;
-    while (loop->running && (loop->timers || loop->ios)) {
-        int timeout_ms = -1;
+    while (loop->running && has_work(loop)) {
+        /* Drain pending callbacks */
+        drain_callbacks(loop);
 
+        if (!loop->running || !has_work(loop))
+            break;
+
+        /* Calculate timeout from nearest timer */
+        int timeout_ms = -1;
         if (loop->timers) {
             uint64_t earliest = loop->timers->expire_at;
             evix_timer_t *t = loop->timers->next;
@@ -107,6 +120,7 @@ int evix_loop_run(evix_loop_t *loop)
                 timeout_ms = 0;
         }
 
+        /* Poll for I/O and timer events */
         if (loop->backend && loop->backend->poll) {
             loop->backend->poll(loop, timeout_ms);
         } else if (timeout_ms > 0) {
@@ -196,6 +210,7 @@ evix_io_t *evix_io_create(evix_loop_t *loop, int fd, int events, evix_callback_f
 
     io->fd = fd;
     io->events = events;
+    io->oneshot = (events & EVIX_IO_ONESHOT) ? 1 : 0;
     io->callback = callback;
     io->data = data;
 
