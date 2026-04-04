@@ -8,6 +8,23 @@ void tearDown(void) {}
 
 /* -- helpers -- */
 
+static int fake_init(evix_loop_t * loop)
+{
+    (void)loop;
+    return 0;
+}
+
+static void fake_destroy(evix_loop_t * loop)
+{
+    (void)loop;
+}
+
+static evix_backend_t fake_backend = {
+    .init = fake_init,
+    .destroy = fake_destroy,
+    .pool = NULL,
+};
+
 static void increment_counter(void *data)
 {
     int *val = (int *)data;
@@ -24,14 +41,14 @@ static void double_value(void *data)
 
 void test_loop_create_and_destroy(void)
 {
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     TEST_ASSERT_NOT_NULL(loop);
     evix_loop_destroy(loop);
 }
 
 void test_loop_run_returns_immediately_when_empty(void)
 {
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     int result = evix_loop_run(loop);
     TEST_ASSERT_EQUAL_INT(0, result);
     evix_loop_destroy(loop);
@@ -39,7 +56,7 @@ void test_loop_run_returns_immediately_when_empty(void)
 
 void test_single_callback_is_called(void)
 {
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     int value = 0;
 
     evix_loop_add_callback(loop, increment_counter, &value);
@@ -51,7 +68,7 @@ void test_single_callback_is_called(void)
 
 void test_multiple_callbacks_called_in_order(void)
 {
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     int value = 1;
 
     evix_loop_add_callback(loop, double_value, &value);    /* 1 * 2 = 2 */
@@ -65,7 +82,7 @@ void test_multiple_callbacks_called_in_order(void)
 
 void test_callback_not_called_before_run(void)
 {
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     int value = 0;
 
     evix_loop_add_callback(loop, increment_counter, &value);
@@ -79,7 +96,7 @@ void test_callback_not_called_before_run(void)
 
 void test_timer_with_zero_delay(void)
 {
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     int value = 0;
 
     evix_timer_create(loop, 0, increment_counter, &value);
@@ -92,7 +109,7 @@ void test_timer_with_zero_delay(void)
 void test_timer_fires_after_delay(void)
 {
     struct timespec start, end;
-    evix_loop_t *loop = evix_loop_create();
+    evix_loop_t *loop = evix_loop_create(&fake_backend);
     int value = 0;
 
     evix_timer_create(loop, 50, increment_counter, &value);
@@ -102,7 +119,7 @@ void test_timer_fires_after_delay(void)
     evix_loop_run(loop);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    uint64_t elapsed_ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+    uint64_t elapsed_ms = (end.tv_sec - start.tv_sec) * SEC_TO_MS + (end.tv_nsec - start.tv_nsec) / MS_TO_NS;
     TEST_ASSERT(elapsed_ms >= 50);
 
     TEST_ASSERT_EQUAL_INT(1, value);

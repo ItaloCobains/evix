@@ -11,6 +11,10 @@
 
 #include <stdint.h>
 
+/* Constantes de conversão de tempo. */
+#define SEC_TO_MS 1000
+#define MS_TO_NS 1000000
+
 /*
  * Forward declarations -- o "struct evix_loop" é definido em evix.c,
  * aqui só declaramos que ele existe. Quem inclui evix.h só pode
@@ -18,6 +22,16 @@
  */
 typedef struct evix_loop evix_loop_t;
 typedef struct evix_timer evix_timer_t;
+
+/*
+ * Definição da estrutura do backend.
+ * O backend é uma coleção de funções que o loop chama em certos momentos.
+ */
+typedef struct evix_backend {
+    int  (*init)(evix_loop_t *loop);
+    void (*destroy)(evix_loop_t *loop);
+    int  (*pool)(evix_loop_t *loop, int timeout_ms);   
+} evix_backend_t;
 
 /*
  * Tipo de callback que o event loop aceita.
@@ -28,7 +42,7 @@ typedef struct evix_timer evix_timer_t;
 typedef void (*evix_callback_fn)(void *data);
 
 /* Cria um event loop alocado no heap. Retorna NULL se falhar. */
-evix_loop_t *evix_loop_create(void);
+evix_loop_t *evix_loop_create(evix_backend_t *backend);
 
 /* Libera toda a memória do loop (callbacks, timers, o próprio loop). */
 void         evix_loop_destroy(evix_loop_t *loop);

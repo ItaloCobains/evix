@@ -1,7 +1,10 @@
 add_executable(test_evix_loop test_evix_loop.c)
 target_link_libraries(test_evix_loop PRIVATE evix unity)
-
 add_test(NAME test_evix_loop COMMAND test_evix_loop)
+
+add_executable(test_evix_backend test_evix_backend.c)
+target_link_libraries(test_evix_backend PRIVATE evix unity)
+add_test(NAME test_evix_backend COMMAND test_evix_backend)
 
 if(${ENABLE_WARNINGS})
     target_set_warnings(

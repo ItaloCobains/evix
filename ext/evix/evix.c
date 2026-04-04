@@ -3,10 +3,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* Constantes de conversão de tempo. */
-#define SEC_TO_MS 1000
-#define MS_TO_NS 1000000
-
 /*
  * Retorna o tempo atual em milissegundos usando CLOCK_MONOTONIC.
  *
@@ -102,6 +98,7 @@ struct evix_loop {
     int running;
     evix_cb_node_t *head;
     evix_timer_t *timers;
+    evix_backend_t *backend;
 };
 
 /* ================================================================
@@ -113,9 +110,20 @@ struct evix_loop {
  * Isso garante que head=NULL, timers=NULL, running=0.
  * Se usasse malloc, os campos teriam lixo.
  */
-evix_loop_t *evix_loop_create(void)
+evix_loop_t *evix_loop_create(evix_backend_t *backend)
 {
     evix_loop_t *loop = calloc(1, sizeof(evix_loop_t));
+    
+    if (!loop) {
+        return NULL;
+    }
+
+    loop->backend = backend;
+
+    if (backend && backend->init) {
+        backend->init(loop);
+    }
+
     return loop;
 }
 
@@ -143,6 +151,10 @@ void evix_loop_destroy(evix_loop_t *loop)
         evix_timer_t *next = timer->next;
         free(timer);
         timer = next;
+    }
+
+    if (loop->backend && loop->backend->destroy) {
+        loop->backend->destroy(loop);
     }
 
     free(loop);
