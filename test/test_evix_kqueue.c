@@ -14,7 +14,7 @@ void test_kqueue_timer_fires_after_delay(void)
   TEST_ASSERT_NOT_NULL(loop);
   int value = 0;
 
-  evix_timer_create(loop, 50, increment_counter, &value);
+  evix_timer_create(loop, 50, 0, increment_counter, &value);
 
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);

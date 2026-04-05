@@ -94,7 +94,7 @@ void test_loop_uses_backend_poll_for_timers(void)
   evix_loop_t *loop = evix_loop_create(&fake_backend);
   int value = 0;
 
-  evix_timer_create(loop, 50, increment_counter, &value);
+  evix_timer_create(loop, 50, 0, increment_counter, &value);
   evix_loop_run(loop);
 
   TEST_ASSERT_EQUAL_INT(1, value);

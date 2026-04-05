@@ -104,6 +104,32 @@ class TestIO < Minitest::Test
     loop.destroy
   end
 
+  def test_add_io_returns_io_watcher_handle
+    loop = Evix::Loop.new
+    rd, wr = IO.pipe
+    watcher = loop.add_io(rd.fileno, Evix::IO_READ | Evix::IO_ONESHOT) { nil }
+    assert_instance_of Evix::IOWatcher, watcher
+    rd.close
+    wr.close
+    loop.destroy
+  end
+
+  def test_io_watcher_cancel
+    loop = Evix::Loop.new
+    rd, wr = IO.pipe
+    fired = false
+    watcher = loop.add_io(rd.fileno, Evix::IO_READ | Evix::IO_ONESHOT) { fired = true }
+    watcher.cancel
+    loop.add_timer(10) { wr.write('data') }
+    loop.add_timer(30) { loop.stop }
+    loop.run
+    refute fired, 'cancelled watcher should not fire'
+    assert watcher.cancelled?
+    rd.close
+    wr.close
+    loop.destroy
+  end
+
   def test_constants_defined
     assert_equal 1, Evix::IO_READ
     assert_equal 2, Evix::IO_WRITE

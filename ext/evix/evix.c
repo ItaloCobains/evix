@@ -1,17 +1,19 @@
+#include "evix.h"
 #include "evix_internal.h"
+#include <stdint.h>
 #include <stdlib.h>
+#include <sys/syslimits.h>
+#include <sys/types.h>
 #include <time.h>
 
-static uint64_t now_ms(void)
-{
+static uint64_t now_ms(void) {
   struct timespec time_spec;
   clock_gettime(CLOCK_MONOTONIC, &time_spec);
-  return ((uint64_t)time_spec.tv_sec * SEC_TO_MS)
-       + ((uint64_t)time_spec.tv_nsec / MS_TO_NS);
+  return ((uint64_t)time_spec.tv_sec * SEC_TO_MS) +
+         ((uint64_t)time_spec.tv_nsec / MS_TO_NS);
 }
 
-static void sleep_ms(uint64_t milliseconds)
-{
+static void sleep_ms(uint64_t milliseconds) {
   struct timespec time_spec;
   time_spec.tv_sec = (time_t)(milliseconds / SEC_TO_MS);
   time_spec.tv_nsec = (long)((milliseconds % SEC_TO_MS) * MS_TO_NS);
@@ -22,10 +24,10 @@ static void sleep_ms(uint64_t milliseconds)
  * LIFECYCLE
  * ================================================================ */
 
-evix_loop_t *evix_loop_create(evix_backend_t *backend)
-{
+evix_loop_t *evix_loop_create(evix_backend_t *backend) {
   evix_loop_t *loop = calloc(1, sizeof(evix_loop_t));
-  if (!loop) return NULL;
+  if (!loop)
+    return NULL;
 
   loop->backend = backend;
 
@@ -39,8 +41,7 @@ evix_loop_t *evix_loop_create(evix_backend_t *backend)
   return loop;
 }
 
-void evix_loop_destroy(evix_loop_t *loop)
-{
+void evix_loop_destroy(evix_loop_t *loop) {
   evix_cb_node_t *node = loop->head;
   while (node) {
     evix_cb_node_t *next = node->next;
@@ -69,17 +70,13 @@ void evix_loop_destroy(evix_loop_t *loop)
   free(loop);
 }
 
-void evix_loop_stop(evix_loop_t *loop)
-{
-  loop->running = 0;
-}
+void evix_loop_stop(evix_loop_t *loop) { loop->running = 0; }
 
 /* ================================================================
  * CORE: event loop
  * ================================================================ */
 
-static void drain_callbacks(evix_loop_t *loop)
-{
+static void drain_callbacks(evix_loop_t *loop) {
   while (loop->head) {
     evix_cb_node_t *node = loop->head;
     loop->head = node->next;
@@ -88,13 +85,11 @@ static void drain_callbacks(evix_loop_t *loop)
   }
 }
 
-static int has_work(evix_loop_t *loop)
-{
+static int has_work(evix_loop_t *loop) {
   return loop->head || loop->timers || loop->ios;
 }
 
-int evix_loop_run(evix_loop_t *loop)
-{
+int evix_loop_run(evix_loop_t *loop) {
   loop->running = 1;
   while (loop->running && has_work(loop)) {
     drain_callbacks(loop);
@@ -134,10 +129,19 @@ int evix_loop_run(evix_loop_t *loop)
       while (timer) {
         if (current >= timer->expire_at) {
           timer->callback(timer->data);
-          *prev = timer->next;
-          evix_timer_t *dead = timer;
-          timer = timer->next;
-          free(dead);
+
+          if (timer->repeat_ms > 0) {
+            /* Re-schedule */
+            timer->expire_at = current + timer->repeat_ms;
+            prev = &timer->next;
+            timer = timer->next;
+          } else {
+            /* One-shot remove */
+            *prev = timer->next;
+            evix_timer_t *dead = timer;
+            timer = timer->next;
+            free(dead);
+          }
         } else {
           prev = &timer->next;
           timer = timer->next;
@@ -153,10 +157,11 @@ int evix_loop_run(evix_loop_t *loop)
  * IMMEDIATE CALLBACKS
  * ================================================================ */
 
-void evix_loop_add_callback(evix_loop_t *loop, evix_callback_fn callback, void *data)
-{
+void evix_loop_add_callback(evix_loop_t *loop, evix_callback_fn callback,
+                            void *data) {
   evix_cb_node_t *node = calloc(1, sizeof(evix_cb_node_t));
-  if (!node) return;
+  if (!node)
+    return;
 
   node->callback = callback;
   node->data = data;
@@ -175,12 +180,15 @@ void evix_loop_add_callback(evix_loop_t *loop, evix_callback_fn callback, void *
  * TIMERS
  * ================================================================ */
 
-evix_timer_t *evix_timer_create(evix_loop_t *loop, uint64_t delay_ms, evix_callback_fn callback, void *data)
-{
+evix_timer_t *evix_timer_create(evix_loop_t *loop, uint64_t delay_ms,
+                                uint64_t repeat_ms, evix_callback_fn callback,
+                                void *data) {
   evix_timer_t *timer = calloc(1, sizeof(evix_timer_t));
-  if (!timer) return NULL;
+  if (!timer)
+    return NULL;
 
   timer->expire_at = now_ms() + delay_ms;
+  timer->repeat_ms = repeat_ms;
   timer->callback = callback;
   timer->data = data;
 
@@ -190,22 +198,34 @@ evix_timer_t *evix_timer_create(evix_loop_t *loop, uint64_t delay_ms, evix_callb
   return timer;
 }
 
-void evix_timer_destroy(evix_timer_t *timer)
-{
-  free(timer);
+void evix_timer_stop(evix_loop_t *loop, evix_timer_t *timer) {
+  evix_timer_t **prev = &loop->timers;
+  evix_timer_t *cur = loop->timers;
+  while (cur) {
+    if (cur == timer) {
+      *prev = cur->next;
+      free(cur);
+      return;
+    }
+    prev = &cur->next;
+    cur = cur->next;
+  }
 }
+
+void evix_timer_destroy(evix_timer_t *timer) { free(timer); }
 
 /* ================================================================
  * I/O WATCHERS
  * ================================================================ */
 
-evix_io_t *evix_io_create(evix_loop_t *loop, int fd, int events, evix_callback_fn callback, void *data)
-{
+evix_io_t *evix_io_create(evix_loop_t *loop, int fd, int events,
+                          evix_callback_fn callback, void *data) {
   if (!loop->backend || !loop->backend->io_add)
     return NULL;
 
   evix_io_t *io = calloc(1, sizeof(evix_io_t));
-  if (!io) return NULL;
+  if (!io)
+    return NULL;
 
   io->fd = fd;
   io->events = events;
@@ -221,8 +241,7 @@ evix_io_t *evix_io_create(evix_loop_t *loop, int fd, int events, evix_callback_f
   return io;
 }
 
-void evix_io_stop(evix_loop_t *loop, evix_io_t *io)
-{
+void evix_io_stop(evix_loop_t *loop, evix_io_t *io) {
   if (loop->backend && loop->backend->io_del) {
     loop->backend->io_del(loop, io->fd);
   }

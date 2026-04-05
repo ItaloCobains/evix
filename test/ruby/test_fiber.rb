@@ -61,6 +61,23 @@ class TestFiber < Minitest::Test
     loop.destroy
   end
 
+  def test_fiber_exception_propagates
+    loop = Evix::Loop.new(backend: nil)
+    loop.spawn { raise RuntimeError, 'boom' }
+    assert_raises(RuntimeError) { loop.run }
+    loop.destroy
+  end
+
+  def test_fiber_exception_stops_loop
+    loop = Evix::Loop.new
+    reached = false
+    loop.spawn { raise 'fail' }
+    loop.add_timer(50) { reached = true }
+    assert_raises(RuntimeError) { loop.run }
+    refute reached, 'loop should have stopped before timer fired'
+    loop.destroy
+  end
+
   def test_wrap_close
     loop = Evix::Loop.new(backend: nil)
     rd, wr = IO.pipe
@@ -71,6 +88,20 @@ class TestFiber < Minitest::Test
     assert wrapped.closed?
 
     wr.close
+    loop.destroy
+  end
+
+  def test_signal_handling
+    loop = Evix::Loop.new
+    received = false
+    loop.add_signal('USR1') do
+      received = true
+      loop.stop
+    end
+    loop.add_timer(10) { Process.kill('USR1', Process.pid) }
+    loop.add_timer(500) { loop.stop }
+    loop.run
+    assert received, 'signal handler should have fired'
     loop.destroy
   end
 

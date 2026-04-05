@@ -67,7 +67,7 @@ void test_timer_with_zero_delay(void)
   evix_loop_t *loop = evix_loop_create(NULL);
   int value = 0;
 
-  evix_timer_create(loop, 0, increment_counter, &value);
+  evix_timer_create(loop, 0, 0, increment_counter, &value);
   evix_loop_run(loop);
 
   TEST_ASSERT_EQUAL_INT(1, value);
@@ -80,7 +80,7 @@ void test_timer_fires_after_delay(void)
   evix_loop_t *loop = evix_loop_create(NULL);
   int value = 0;
 
-  evix_timer_create(loop, 50, increment_counter, &value);
+  evix_timer_create(loop, 50, 0, increment_counter, &value);
   TEST_ASSERT_EQUAL_INT(0, value);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
@@ -95,6 +95,19 @@ void test_timer_fires_after_delay(void)
   evix_loop_destroy(loop);
 }
 
+void test_recurring_timer_fires_multiple_times(void)
+{
+  evix_loop_t *loop = evix_loop_create(NULL);
+  int value = 0;
+
+  evix_timer_create(loop, 20, 20, increment_counter, &value);
+  evix_timer_create(loop, 70, 0, stop_loop, loop);
+  evix_loop_run(loop);
+
+  TEST_ASSERT(value >= 3);
+  evix_loop_destroy(loop);
+}
+
 int main(void)
 {
   UNITY_BEGIN();
@@ -105,5 +118,6 @@ int main(void)
   RUN_TEST(test_callback_not_called_before_run);
   RUN_TEST(test_timer_with_zero_delay);
   RUN_TEST(test_timer_fires_after_delay);
+  RUN_TEST(test_recurring_timer_fires_multiple_times);
   return UNITY_END();
 }

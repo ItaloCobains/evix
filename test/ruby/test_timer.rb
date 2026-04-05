@@ -44,6 +44,56 @@ class TestTimer < Minitest::Test
     loop.destroy
   end
 
+  def test_recurring_timer
+    loop = Evix::Loop.new
+    count = 0
+    loop.add_timer(20, repeat: 20) { count += 1 }
+    loop.add_timer(70) { loop.stop }
+    loop.run
+    assert count >= 3, "recurring timer should fire at least 3 times, got #{count}"
+    loop.destroy
+  end
+
+  def test_add_timer_returns_timer_handle
+    loop = Evix::Loop.new
+    timer = loop.add_timer(10) { nil }
+    assert_instance_of Evix::Timer, timer
+    loop.destroy
+  end
+
+  def test_timer_cancel
+    loop = Evix::Loop.new
+    fired = false
+    timer = loop.add_timer(20) { fired = true }
+    timer.cancel
+    loop.add_timer(50) { loop.stop }
+    loop.run
+    refute fired, 'cancelled timer should not fire'
+    assert timer.cancelled?
+    loop.destroy
+  end
+
+  def test_cancel_recurring_timer
+    loop = Evix::Loop.new
+    count = 0
+    timer = loop.add_timer(10, repeat: 10) { count += 1 }
+    loop.add_timer(35) { timer.cancel }
+    loop.add_timer(60) { loop.stop }
+    loop.run
+    assert count >= 2, "should have fired before cancel, got #{count}"
+    assert count <= 4, "should have stopped after cancel, got #{count}"
+    assert timer.cancelled?
+    loop.destroy
+  end
+
+  def test_oneshot_timer_auto_marks_cancelled
+    loop = Evix::Loop.new
+    timer = loop.add_timer(10) { nil }
+    loop.run
+    assert timer.cancelled?, 'one-shot timer should be marked cancelled after firing'
+    loop.destroy
+  end
+
   def test_timer_with_callback
     loop = Evix::Loop.new
     order = []

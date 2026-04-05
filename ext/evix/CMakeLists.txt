@@ -1,10 +1,22 @@
-add_library(evix
+set(EVIX_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/evix.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/evix.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/evix_internal.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/evix_kqueue.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/evix_kqueue.c"
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(APPEND EVIX_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/evix_epoll.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/evix_epoll.c"
+    )
+else()
+    list(APPEND EVIX_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/evix_kqueue.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/evix_kqueue.c"
+    )
+endif()
+
+add_library(evix ${EVIX_SOURCES})
 
 target_include_directories(evix PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 

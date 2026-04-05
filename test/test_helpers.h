@@ -15,6 +15,12 @@ static void double_value(void *data)
   (*val) *= 2;
 }
 
+static void stop_loop(void *data)
+{
+  evix_loop_t *loop = (evix_loop_t *)data;
+  evix_loop_stop(loop);
+}
+
 /* Callback that stops the loop -- useful for I/O watcher tests */
 static void increment_and_stop(void *data)
 {

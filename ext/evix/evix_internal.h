@@ -2,6 +2,7 @@
 #define EVIX_INTERNAL_H
 
 #include "evix.h"
+#include <stdint.h>
 
 typedef struct evix_cb_node {
   evix_callback_fn callback;
@@ -11,6 +12,7 @@ typedef struct evix_cb_node {
 
 struct evix_timer {
   uint64_t expire_at;
+  uint64_t repeat_ms;
   evix_callback_fn callback;
   void *data;
   struct evix_timer *next;
